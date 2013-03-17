@@ -17,4 +17,8 @@ Gem::Specification.new do |gem|
 
   gem.add_runtime_dependency("eventmachine", [">= 0.12.10"])
   gem.add_development_dependency("rspec")
+
+  gem.add_development_dependency("guard")
+  gem.add_development_dependency("guard-rspec")
+  gem.add_development_dependency("rb-inotify")
 end
