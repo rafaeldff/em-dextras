@@ -1,7 +1,10 @@
 require "em-dextras/version"
 
-module Em
-  module Dextras
-    # Your code goes here...
-  end
+require "em-dextras/pipelines"
+require "em-dextras/pipelines/synchronous_stage"
+
+require "eventmachine"
+
+module EMDextras
+  # Your code goes here...
 end
