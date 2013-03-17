@@ -4,8 +4,8 @@ require File.expand_path('../lib/em-dextras/version', __FILE__)
 Gem::Specification.new do |gem|
   gem.authors       = ["Rafael de F. Ferreira"]
   gem.email         = ["public@rafaelferreira.net"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = %q{Utilities to help working with EventMachine deferrables.}
+  gem.summary       = %q{ Utilities to help working with EventMachine Deferrables. Includes probes for asynchronous tests and a DSL to chain deferrables.  }
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($\)
@@ -14,4 +14,7 @@ Gem::Specification.new do |gem|
   gem.name          = "em-dextras"
   gem.require_paths = ["lib"]
   gem.version       = Em::Dextras::VERSION
+
+  gem.add_runtime_dependency("eventmachine", [">= 0.12.10"])
+  gem.add_development_dependency("rspec")
 end
