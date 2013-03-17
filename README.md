@@ -1,6 +1,6 @@
 # Em::Dextras
-
-TODO: Write a gem description
+Utilities to help working with EventMachine Deferrables. Includes probes for
+asynchronous tests and a DSL to chain deferrables.
 
 ## Installation
 
