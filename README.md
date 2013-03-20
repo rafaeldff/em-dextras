@@ -18,7 +18,15 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Documentation is currently lacking, fixing this is our number 1 priority.
+
+The project offers:
+ * A DSL to structure asynchronous computations, inspired by [SoundCloud empipelines](https://github.com/soundcloud/empipelines)
+   and [future composition](http://code.technically.us/post/17965128229/fables-of-the-reconstruction-part-3-leibniz-saw-all)
+ * Methods to help test deferrable based code
+   - Low-level probing 
+   - Syntatic sugar as RSpec matchers
+
 
 ## Contributing
 
