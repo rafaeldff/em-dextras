@@ -1,4 +1,4 @@
-module EMDextras::Pipelines::SynchronousStage
+module EMDextras::Chains::SynchronousStage
   def invoke(input)
     raise NotImplementedError.new("You must implement #invoke.")
   end
@@ -6,9 +6,9 @@ module EMDextras::Pipelines::SynchronousStage
   def todo(input)
     begin 
       value = invoke(input)
-      EMDextras::Pipelines::Deferrables.succeeded value
+      EMDextras::Chains::Deferrables.succeeded value
     rescue  => exception
-      EMDextras::Pipelines::Deferrables.failed exception
+      EMDextras::Chains::Deferrables.failed exception
     end
   end
 end

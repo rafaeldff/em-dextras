@@ -1,13 +1,13 @@
 require 'spec_helper'
 
-describe EMDextras::Pipelines do 
+describe EMDextras::Chains do 
   class ProduceStage
     def initialize(result)
       @result = result
     end
 
     def todo(ignored_input)
-      EMDextras::Pipelines::Deferrables.succeeded @result
+      EMDextras::Chains::Deferrables.succeeded @result
     end
   end
 
@@ -18,20 +18,20 @@ describe EMDextras::Pipelines do
 
     def todo(input)
       @inputs << input
-      EMDextras::Pipelines::Deferrables.succeeded input
+      EMDextras::Chains::Deferrables.succeeded input
     end
   end
 
   class ErrorStage
     def todo(input)
-      EMDextras::Pipelines::Deferrables.failed "Failed with #{input}"
+      EMDextras::Chains::Deferrables.failed "Failed with #{input}"
     end
   end
 
   class StopStage
     def todo(input)
       EM.stop
-      EMDextras::Pipelines::Deferrables.succeeded input
+      EMDextras::Chains::Deferrables.succeeded input
     end
   end
 
@@ -39,7 +39,7 @@ describe EMDextras::Pipelines do
     attr :context
     def todo(input, context)
       @context = context
-      EMDextras::Pipelines::Deferrables.succeeded input
+      EMDextras::Chains::Deferrables.succeeded input
     end
   end
 
@@ -49,7 +49,7 @@ describe EMDextras::Pipelines do
     EM.run do 
       inputs = []
 
-      EMDextras::Pipelines.pipe("input", monitoring, [
+      EMDextras::Chains.pipe("input", monitoring, [
         SpyStage.new(inputs),
         SpyStage.new(inputs),
         StopStage.new
@@ -69,7 +69,7 @@ describe EMDextras::Pipelines do
         fail("timeout")
       end
 
-      EMDextras::Pipelines.pipe("anything", monitoring, [ErrorStage.new]);
+      EMDextras::Chains.pipe("anything", monitoring, [ErrorStage.new]);
     end
   end
 
@@ -77,7 +77,7 @@ describe EMDextras::Pipelines do
     contextual_stage = ContextualStage.new
     
     EM.run do 
-      EMDextras::Pipelines.pipe("anything", monitoring, [
+      EMDextras::Chains.pipe("anything", monitoring, [
         contextual_stage,
         StopStage.new
       ], :context => "the context")
@@ -94,7 +94,7 @@ describe EMDextras::Pipelines do
         EM.run do
           final_inputs = []
 
-          EMDextras::Pipelines.pipe("anything", monitoring, [
+          EMDextras::Chains.pipe("anything", monitoring, [
             ProduceStage.new([1,2,3]),
             :split,
             SpyStage.new(final_inputs),
@@ -115,7 +115,7 @@ describe EMDextras::Pipelines do
         first_context.stub(:split).and_return second_context
 
         EM.run do 
-          EMDextras::Pipelines.pipe("anything", monitoring, [
+          EMDextras::Chains.pipe("anything", monitoring, [
             before,
             ProduceStage.new([1,2]),
             :split,
@@ -131,7 +131,7 @@ describe EMDextras::Pipelines do
     end
 
     context "and the input is not enumberable" do
-      it "will terminate the pipeline and report the error as an exception" do
+      it "will terminate the chain and report the error as an exception" do
         EM.run do 
           monitoring.should_receive(:inform_exception!) do 
             EM.stop
@@ -141,7 +141,7 @@ describe EMDextras::Pipelines do
             fail("timeout")
           end
 
-          EMDextras::Pipelines.pipe("anything", monitoring, [
+          EMDextras::Chains.pipe("anything", monitoring, [
             ProduceStage.new(:not_enumberable_input),
             :split,
             SpyStage.new([]),

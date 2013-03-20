@@ -1,5 +1,5 @@
 module EMDextras
-  module Pipelines
+  module Chains
     module Deferrables
       def self.succeeded(*args)
         deferrable = EventMachine::DefaultDeferrable.new
@@ -20,10 +20,10 @@ module EMDextras
     end
 
     def self.pipe(zero, monitoring, stages, options = {})
-      run_pipeline zero, stages, PipeSetup.new(monitoring, options)
+      run_chain zero, stages, PipeSetup.new(monitoring, options)
     end
 
-    def self.run_pipeline input, stages, pipe_setup
+    def self.run_chain input, stages, pipe_setup
       return if stages.empty?
 
       stage, *rest = *stages
@@ -31,14 +31,14 @@ module EMDextras
       puts "Running #{stage}(#{input})" if pipe_setup.options[:debug]
 
       if stage == :split
-        split_pipeline(input, rest, pipe_setup)
+        split_chain(input, rest, pipe_setup)
         return
       end
 
 
       deferrable = call(stage, input, pipe_setup)
       deferrable.callback do |value|
-        run_pipeline value, rest, pipe_setup
+        run_chain value, rest, pipe_setup
       end
       deferrable.errback do |error_value|
         pipe_setup.inform_exception! error_value, stage
@@ -46,7 +46,7 @@ module EMDextras
     end
 
     private
-    def self.split_pipeline input, rest, pipe_setup
+    def self.split_chain input, rest, pipe_setup
       new_options = pipe_setup.options.clone
 
       context = new_options[:context]
@@ -61,7 +61,7 @@ module EMDextras
         return
       end
       input.each do |value|
-        run_pipeline value, rest, new_pipe_setup
+        run_chain value, rest, new_pipe_setup
       end
     end
 

@@ -1,7 +1,7 @@
 require "em-dextras/version"
 
-require "em-dextras/pipelines"
-require "em-dextras/pipelines/synchronous_stage"
+require "em-dextras/chains"
+require "em-dextras/chains/synchronous_stage"
 
 require "eventmachine"
 

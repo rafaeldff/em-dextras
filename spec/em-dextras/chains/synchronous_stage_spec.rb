@@ -1,15 +1,15 @@
 require File.expand_path('spec/spec_helper')
 
-describe EMDextras::Pipelines::SynchronousStage do
+describe EMDextras::Chains::SynchronousStage do
   class PasstroughSynchronousStage
-    include EMDextras::Pipelines::SynchronousStage
+    include EMDextras::Chains::SynchronousStage
     def invoke(input)
       "Got #{input}"
     end
   end
 
   class FailingSynchronousStage
-    include EMDextras::Pipelines::SynchronousStage
+    include EMDextras::Chains::SynchronousStage
     def invoke(input_exception)
       raise input_exception
     end
