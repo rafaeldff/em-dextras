@@ -1,3 +1,5 @@
+require 'rspec/mocks/argument_list_matcher'
+
 module EMDextras::Spec
   class Spy
     def initialize(options = {})
@@ -6,7 +8,11 @@ module EMDextras::Spec
     end
 
     def called?(method_name, *args)
-      @calls.include? :name => method_name, :args => args
+      arg_list_matcher = RSpec::Mocks::ArgumentListMatcher.new(*args)
+
+      called = @calls.any? do |call| 
+        call[:name] ==  method_name && arg_list_matcher.args_match?(*call[:args])
+      end
     end
 
     def received_call!(method_name, *args)
@@ -27,6 +33,7 @@ module EMDextras::Spec
         raise ExpectationFailed, "Expected #{method_name} to have been called with parameters [#{args.join(",")}] but only received calls #{@calls.inspect}"
       end
     end
+
 
   end
 

@@ -2,10 +2,11 @@ require 'spec_helper'
 
 describe EMDextras::Spec::Spy do
   subject { described_class.new }
+  
   describe :"called?" do
     it "should record calls" do
       subject.foo(1, :a => "b")
-    
+
       subject.called?(:foo, 1, :a => "b").should be_true
       subject.called?(:bar, 1, :a => "b").should be_false
       subject.called?(:foo, 1, :a => "c").should be_false
@@ -23,6 +24,7 @@ describe EMDextras::Spec::Spy do
       spy.some_method.should == "default"
     end
   end
+
   describe :received_call! do
     it "should do nothing if the call was really received" do
       EM.run do 
@@ -40,6 +42,13 @@ describe EMDextras::Spec::Spy do
           subject.received_call!(:bar, 1, :a => "b")
         end
       }.to raise_error(/bar.*foo/)
+    end
+
+    it "should accept rspec argument matchers" do
+      subject.foo(1, "banana")
+
+      EM.run { subject.received_call!(:foo, 1, /ba(na)*/) } #doesn't raise
+      expect {EM.run { subject.received_call!(:foo, 1, /apple/) } }.to raise_error
     end
 
     context "when the method is triggered asynchronously" do
