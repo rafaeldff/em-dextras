@@ -12,6 +12,17 @@ describe EMDextras::Spec::Spy do
     end  
   end
 
+  describe "default return value" do
+    it "returns nil if no default return value is defined" do
+      spy = EMDextras::Spec::Spy.new 
+      spy.some_method.should == nil
+    end
+
+    it "returns the default value if defined" do
+      spy = EMDextras::Spec::Spy.new :default_return => "default"
+      spy.some_method.should == "default"
+    end
+  end
   describe :received_call! do
     it "should do nothing if the call was really received" do
       EM.run do 

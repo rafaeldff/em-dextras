@@ -1,7 +1,8 @@
 module EMDextras::Spec
   class Spy
-    def initialize
+    def initialize(options = {})
       @calls = []
+      @return_value = options[:default_return]
     end
 
     def called?(method_name, *args)
@@ -16,6 +17,7 @@ module EMDextras::Spec
 
     def method_missing(method_name, *args, &block)
       @calls << { :name => method_name, :args => args }
+      @return_value
     end
 
     private
