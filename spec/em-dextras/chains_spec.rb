@@ -67,21 +67,38 @@ describe EMDextras::Chains do
     end
   end
 
-  it "should interrupt the chain when a stage returns an empty succeeded deferrable" do
-    EM.run do
-      input = []
-      
-      EMDextras::Chains.pipe("input", monitoring, [
-        ProduceStage.new("x"),
-        InterruptChainStage.new,
-        SpyStage.new(input)
-      ])
+  context "- interruption -" do
+    it "should interrupt the chain when a stage returns an empty succeeded deferrable" do
+      EM.run do
+        input = []
 
-      probe_event_machine check: (Proc.new do
-        input.should == []
-      end)
+        EMDextras::Chains.pipe("input", monitoring, [
+          ProduceStage.new("x"),
+          InterruptChainStage.new,
+          SpyStage.new(input)
+        ])
+
+        probe_event_machine check: (Proc.new do
+          input.should == []
+        end)
+      end
     end
-    
+
+    it "should notify the monitor that the chain ended (with nil value)" do
+      EM.run do
+        input = []
+
+        monitoring = EMDextras::Spec::Spy.new
+
+        EMDextras::Chains.pipe("input", monitoring, [
+          ProduceStage.new("x"),
+          InterruptChainStage.new,
+          SpyStage.new(input)
+        ])
+
+        monitoring.received_call!(:end_of_chain!, nil)
+      end
+    end
   end
 
   context "- monitoring -" do 

@@ -12,8 +12,6 @@ module EMDextras
       end
 
       def end_of_chain!(arg, context=nil)
-        #puts "args #{args.inspect} arg #{arg.inspect} ctx #{context_array.inspect}"
-        
         @args << arg
         @resolved -= 1
         complete!(@args, context) if @resolved == 0
@@ -63,7 +61,11 @@ module EMDextras
       deferrable = call(stage, input, pipe_setup)
       deferrable.callback do |value|
         should_halt = value.nil?
-        run_chain value, rest, pipe_setup unless should_halt
+        if should_halt
+          chain_ended!(value, pipe_setup)
+        else
+          run_chain value, rest, pipe_setup
+        end
       end
       deferrable.errback do |error_value|
         pipe_setup.inform_exception! error_value, stage
