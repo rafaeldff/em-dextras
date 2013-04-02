@@ -57,6 +57,14 @@ describe EMDextras::Spec::Spy do
       expect {EM.run { subject.received_call!(:foo, 1, /apple/) } }.to raise_error
     end
 
+    it "should be able to assert that a method will receive nil" do
+      EM.run do 
+        subject.foobar(nil)
+
+        subject.received_call!(:foobar, nil)
+      end
+    end
+
     context "when the method is triggered asynchronously" do
       it "should should probe until the call is received" do
         EM.run do
