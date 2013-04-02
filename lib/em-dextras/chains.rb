@@ -62,7 +62,8 @@ module EMDextras
 
       deferrable = call(stage, input, pipe_setup)
       deferrable.callback do |value|
-        run_chain value, rest, pipe_setup
+        should_halt = value.nil?
+        run_chain value, rest, pipe_setup unless should_halt
       end
       deferrable.errback do |error_value|
         pipe_setup.inform_exception! error_value, stage

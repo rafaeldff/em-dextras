@@ -43,6 +43,14 @@ describe EMDextras::Chains do
     end
   end
 
+  class InterruptChainStage
+    def todo(ignored)
+      deferrable = EventMachine::DefaultDeferrable.new
+      deferrable.succeed()
+      deferrable
+    end
+  end
+
   let(:monitoring) { mock.as_null_object }
   
   it "should chain todo stages" do
@@ -57,6 +65,23 @@ describe EMDextras::Chains do
 
       inputs.should == ["input", "input"]
     end
+  end
+
+  it "should interrupt the chain when a stage returns an empty succeeded deferrable" do
+    EM.run do
+      input = []
+      
+      EMDextras::Chains.pipe("input", monitoring, [
+        ProduceStage.new("x"),
+        InterruptChainStage.new,
+        SpyStage.new(input)
+      ])
+
+      probe_event_machine check: (Proc.new do
+        input.should == []
+      end)
+    end
+    
   end
 
   context "- monitoring -" do 
