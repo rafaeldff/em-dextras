@@ -59,32 +59,60 @@ describe EMDextras::Chains do
     end
   end
 
-  it "should notify monitoring of any exceptions" do
-    EM.run do
-      monitoring.should_receive(:inform_exception!) do 
-        EM.stop
-      end
+  context "- monitoring -" do 
+    it "should notify monitoring of any exceptions" do
+      EM.run do
+        monitoring.should_receive(:inform_exception!) do 
+          EM.stop
+        end
 
-      EM.add_timer(2) do
-        fail("timeout")
-      end
+        EM.add_timer(2) do
+          fail("timeout")
+        end
 
-      EMDextras::Chains.pipe("anything", monitoring, [ErrorStage.new]);
+        EMDextras::Chains.pipe("anything", monitoring, [ErrorStage.new]);
+      end
+    end
+
+    it "should notify monitoring of the end of the pipeline" do
+      EM.run do 
+        monitoring = EMDextras::Spec::Spy.new
+        EMDextras::Chains.pipe("x", monitoring, [
+          ProduceStage.new("y"),
+          SpyStage.new([]),
+          ProduceStage.new("z"),
+        ])
+
+        monitoring.received_call!(:end_of_chain!, "z")
+      end
     end
   end
 
-  it "should pass a 'context' object if given and the stage takes one" do
-    contextual_stage = ContextualStage.new
-    
-    EM.run do 
-      EMDextras::Chains.pipe("anything", monitoring, [
-        contextual_stage,
-        StopStage.new
-      ], :context => "the context")
+  context " - context - " do
+    it "should pass a 'context' object if given and the stage takes one" do
+      contextual_stage = ContextualStage.new
 
-      probe_event_machine :check => lambda {|x|
-        contextual_stage.context.should == "the context"
-      }
+      EM.run do 
+        EMDextras::Chains.pipe("anything", monitoring, [
+          contextual_stage,
+          StopStage.new
+        ], :context => "the context")
+
+        probe_event_machine :check => lambda {|x|
+          contextual_stage.context.should == "the context"
+        }
+      end
+    end
+
+    it "should pass the contect object to monitoring if given" do
+      EM.run do 
+        monitoring = EMDextras::Spec::Spy.new
+        EMDextras::Chains.pipe("x", monitoring, [
+          ProduceStage.new("y"),
+        ], context: "the context")
+
+        monitoring.received_call!(:end_of_chain!, "y", "the context")
+      end
     end
   end
 
@@ -114,14 +142,14 @@ describe EMDextras::Chains do
             ProduceStage.new([1,2]),
             :split,
             SpyStage.new(intermediate_inputs),
-            ProduceStage.new([4,5]),
+            ProduceStage.new([3,4]),
             :split,
             SpyStage.new(final_inputs),
             StopStage.new
           ])
 
           intermediate_inputs.should =~ [1,2]
-          final_inputs.should =~ [4,5,4,5]
+          final_inputs.should =~ [3,4,3,4]
         end
       end
 
@@ -146,6 +174,38 @@ describe EMDextras::Chains do
             before.context.should == first_context
             after.context.should == second_context
           }
+        end
+      end
+
+      it "should inform monitoring that the pipeline ended only once" do
+        EM.run do
+          monitoring = EMDextras::Spec::Spy.new
+
+          EMDextras::Chains.pipe("anything", monitoring, [
+            ProduceStage.new([1,2]),
+            :split,
+            ProduceStage.new([3,4]),
+            :split,
+            SpyStage.new([])
+          ])
+
+          monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]])
+        end
+      end
+
+      it "should inform monitoring that the pipeline ended with context if given" do
+        EM.run do
+          monitoring = EMDextras::Spec::Spy.new
+
+          EMDextras::Chains.pipe("anything", monitoring, [
+            ProduceStage.new([1,2]),
+            :split,
+            ProduceStage.new([3,4]),
+            :split,
+            SpyStage.new([])
+          ], context: :the_context)
+
+          monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]], :the_context)
         end
       end
     end

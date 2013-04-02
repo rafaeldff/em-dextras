@@ -1,11 +1,38 @@
 module EMDextras
   module Chains
+    class JoinMonitor
+      def initialize(size, underlying)
+        @underlying = underlying
+        @resolved = size
+        @args = []
+      end
+
+      def inform_exception!(*args)
+        @underlying.inform_exception!(*args)
+      end
+
+      def end_of_chain!(arg, context=nil)
+        #puts "args #{args.inspect} arg #{arg.inspect} ctx #{context_array.inspect}"
+        
+        @args << arg
+        @resolved -= 1
+        complete!(@args, context) if @resolved == 0
+      end
+
+      def complete!(args, context)
+        if context.nil?
+          @underlying.end_of_chain! args
+        else
+          @underlying.end_of_chain! args, context
+        end
+      end
+    end
+
     module Deferrables
       def self.succeeded(*args)
         deferrable = EventMachine::DefaultDeferrable.new
         deferrable.succeed(*args)
-        deferrable
-      end
+        deferrable end
       def self.failed(*args)
         deferrable = EventMachine::DefaultDeferrable.new
         deferrable.fail(*args)
@@ -24,17 +51,14 @@ module EMDextras
     end
 
     def self.run_chain input, stages, pipe_setup
-      return if stages.empty?
+      return chain_ended!(input, pipe_setup) if stages.empty?
 
       stage, *rest = *stages
-
-      puts "Running #{stage}(#{input})" if pipe_setup.options[:debug]
 
       if stage == :split
         split_chain(input, rest, pipe_setup)
         return
       end
-
 
       deferrable = call(stage, input, pipe_setup)
       deferrable.callback do |value|
@@ -54,7 +78,8 @@ module EMDextras
         new_options[:context] = context.split 
       end
 
-      new_pipe_setup =  PipeSetup.new(pipe_setup.monitoring, new_options)
+      join_monitor = JoinMonitor.new(input.size, pipe_setup.monitoring)
+      new_pipe_setup = PipeSetup.new(join_monitor, new_options)
 
       unless input.respond_to? :each
         pipe_setup.inform_exception! ArgumentError.new(":split stage expects enumerable input. \"#{input}\" is not enumerable."), :split
@@ -67,11 +92,24 @@ module EMDextras
 
     def self.call(stage, input, pipe_setup)
       todo_method = stage.method(:todo)
-      case todo_method.arity
-      when 1
-        stage.todo(input)
-      when 2
+      arity = todo_method.arity
+      if arity < 0 && pipe_setup.options[:context]
         stage.todo(input, pipe_setup.options[:context])
+      elsif arity < 0 || arity == 1
+        stage.todo(input)
+      elsif arity == 2
+        stage.todo(input, pipe_setup.options[:context])
+      end
+    end
+
+    def self.chain_ended!(value, pipe_setup)
+      context = pipe_setup.options[:context]
+      monitoring = pipe_setup.monitoring
+
+      if context
+        monitoring.end_of_chain!(value, context)
+      else
+        monitoring.end_of_chain!(value)
       end
     end
   end
