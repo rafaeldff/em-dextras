@@ -25,6 +25,12 @@ describe EMDextras::Spec::Spy do
     end
   end
 
+  describe :respond_to? do
+    it "will always return true" do
+      subject.respond_to?(:any_method_name).should be_true
+    end
+  end
+
   describe :received_call! do
     it "should do nothing if the call was really received" do
       EM.run do 
@@ -62,6 +68,36 @@ describe EMDextras::Spec::Spy do
         end
       end
     end
+  end
+
+  describe :received_n_calls! do
+    it "should do nothing if the call was received the given number of tiems" do
+      EM.run do 
+        subject.foo(42, :a => "b")
+        subject.foo(42, :a => "b")
+
+        subject.received_n_calls!(2, :foo, 42, :a => "b")
+      end
+    end
+
+    it "should raise an exception if the call was not received" do
+      expect {
+        EM.run do 
+          subject.received_n_calls!(1, :bar, :a => "b")
+        end
+      }.to raise_error(/1.*0/)
+    end
+
+    it "should raise an exception if the call was received a number of times less than what was expected" do
+      expect {
+        EM.run do 
+          subject.foo(:a => "b")
+
+          subject.received_n_calls!(2, :foo, :a => "b")
+        end
+      }.to raise_error(/2.*1/)
+    end
+    
   end
 
 end
