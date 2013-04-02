@@ -105,6 +105,26 @@ describe EMDextras::Chains do
         end
       end
 
+      it "successive splits should recursively divide the pipeline" do
+        EM.run do
+          final_inputs = []
+          intermediate_inputs = []
+
+          EMDextras::Chains.pipe("anything", monitoring, [
+            ProduceStage.new([1,2]),
+            :split,
+            SpyStage.new(intermediate_inputs),
+            ProduceStage.new([4,5]),
+            :split,
+            SpyStage.new(final_inputs),
+            StopStage.new
+          ])
+
+          intermediate_inputs.should =~ [1,2]
+          final_inputs.should =~ [4,5,4,5]
+        end
+      end
+
       it "should split the given context" do
         before = ContextualStage.new
         after = ContextualStage.new
