@@ -5,6 +5,7 @@ module EMDextras::Spec
     def initialize(options = {})
       @calls = []
       @return_value = options[:default_return]
+      @only_respond_to = options[:only_respond_to]
     end
 
     def called?(method_name, *args)
@@ -14,7 +15,7 @@ module EMDextras::Spec
     def received_n_calls!(number, method_name, *args)
       probe_event_machine check: (Proc.new do
         received_calls_number = count_calls(method_name, *args)
-        unless (received_calls_number == number ) 
+        unless (received_calls_number == number )
           raise ExpectationFailed, "Expected #{method_name} to have been called #{number} times with parameters [#{args.join(",")}] but only received #{received_calls_number} such calls (also received the following calls: #{@calls.inspect})"
         end
       end)
@@ -24,8 +25,12 @@ module EMDextras::Spec
       received_n_calls!(1, method_name, *args)
     end
 
+    def not_received_call!(method_name, *args)
+      received_n_calls!(0, method_name, *args)
+    end
+
     def respond_to?(symbol)
-      true
+      @only_respond_to ? @only_respond_to.include?(symbol) : true
     end
 
     def method_missing(method_name, *args, &block)
@@ -44,7 +49,7 @@ module EMDextras::Spec
     def count_calls(method_name, *args)
       arg_list_matcher = RSpec::Mocks::ArgumentListMatcher.new(*args)
 
-      found = @calls.select do |call| 
+      found = @calls.select do |call|
         call[:name] ==  method_name && arg_list_matcher.args_match?(*call[:args])
       end
       found.size
