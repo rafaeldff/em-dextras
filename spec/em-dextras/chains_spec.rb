@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe EMDextras::Chains do 
+describe EMDextras::Chains do
   class ProduceStage
     def initialize(result)
       @result = result
@@ -52,9 +52,9 @@ describe EMDextras::Chains do
   end
 
   let(:monitoring) { mock.as_null_object }
-  
+
   it "should chain todo stages" do
-    EM.run do 
+    EM.run do
       inputs = []
 
       EMDextras::Chains.pipe("input", monitoring, [
@@ -101,10 +101,10 @@ describe EMDextras::Chains do
     end
   end
 
-  context "- monitoring -" do 
+  context "- monitoring -" do
     it "should notify monitoring of any exceptions" do
       EM.run do
-        monitoring.should_receive(:inform_exception!) do 
+        monitoring.should_receive(:inform_exception!) do
           EM.stop
         end
 
@@ -117,15 +117,31 @@ describe EMDextras::Chains do
     end
 
     it "should notify monitoring of the end of the pipeline" do
-      EM.run do 
+      EM.run do
         monitoring = EMDextras::Spec::Spy.new
         EMDextras::Chains.pipe("x", monitoring, [
           ProduceStage.new("y"),
           SpyStage.new([]),
-          ProduceStage.new("z"),
+          ProduceStage.new("z")
         ])
 
         monitoring.received_call!(:end_of_chain!, "z")
+      end
+    end
+
+    context 'when monitoring does not respond to end_of_chain' do
+      it 'does not to try to call that method' do
+        EM.run do
+          monitoring = EMDextras::Spec::Spy.new only_respond_to: [:this_method]
+
+          EMDextras::Chains.pipe('x', monitoring, [
+            ProduceStage.new('y'),
+            SpyStage.new([]),
+            ProduceStage.new('z')
+          ])
+
+          monitoring.not_received_call!(:end_of_chain!, 'z')
+        end
       end
     end
   end
@@ -134,7 +150,7 @@ describe EMDextras::Chains do
     it "should pass a 'context' object if given and the stage takes one" do
       contextual_stage = ContextualStage.new
 
-      EM.run do 
+      EM.run do
         EMDextras::Chains.pipe("anything", monitoring, [
           contextual_stage,
           StopStage.new
@@ -147,7 +163,7 @@ describe EMDextras::Chains do
     end
 
     it "should pass the contect object to monitoring if given" do
-      EM.run do 
+      EM.run do
         monitoring = EMDextras::Spec::Spy.new
         EMDextras::Chains.pipe("x", monitoring, [
           ProduceStage.new("y"),
@@ -158,7 +174,7 @@ describe EMDextras::Chains do
     end
   end
 
-  context "when given a :split stage" do 
+  context "when given a :split stage" do
     context "and the input is enumberable" do
       it "should invoke the next step the given number of times" do
         EM.run do
@@ -204,7 +220,7 @@ describe EMDextras::Chains do
 
         first_context.stub(:split).and_return second_context
 
-        EM.run do 
+        EM.run do
           EMDextras::Chains.pipe("anything", monitoring, [
             before,
             ProduceStage.new([1,2]),
@@ -254,8 +270,8 @@ describe EMDextras::Chains do
 
     context "and the input is not enumberable" do
       it "will terminate the chain and report the error as an exception" do
-        EM.run do 
-          monitoring.should_receive(:inform_exception!) do 
+        EM.run do
+          monitoring.should_receive(:inform_exception!) do
             EM.stop
           end
 

@@ -78,7 +78,7 @@ module EMDextras
 
       context = new_options[:context]
       if context && context.respond_to?(:split)
-        new_options[:context] = context.split 
+        new_options[:context] = context.split
       end
 
       join_monitor = JoinMonitor.new(input.size, pipe_setup.monitoring)
@@ -109,10 +109,12 @@ module EMDextras
       context = pipe_setup.options[:context]
       monitoring = pipe_setup.monitoring
 
-      if context
-        monitoring.end_of_chain!(value, context)
-      else
-        monitoring.end_of_chain!(value)
+      if monitoring.respond_to? :end_of_chain!
+        if context
+          monitoring.end_of_chain!(value, context)
+        else
+          monitoring.end_of_chain!(value)
+        end
       end
     end
   end
