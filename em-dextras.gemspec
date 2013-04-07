@@ -24,4 +24,5 @@ Gem::Specification.new do |gem|
 
   #for samples
   gem.add_development_dependency("em-http-request")
+  gem.add_development_dependency("webmock")
 end

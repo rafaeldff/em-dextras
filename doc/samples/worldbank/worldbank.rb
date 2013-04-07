@@ -2,15 +2,25 @@ require 'eventmachine'
 require 'em-http-request'
 require 'em-dextras'
 
-def list_of_countries_url
-  'http://api.worldbank.org/countries'
+require_relative './list_countries'
+
+class Monitoring
+  def end_of_chain!(value)
+    puts "end!"
+    EM.stop
+  end
+end
+
+class PrintResponse
+  include EMDextras::Chains::SynchronousStage
+  def invoke(input)
+    puts input.response
+  end
 end
 
 EM.run do
-  http = EventMachine::HttpRequest.new(list_of_countries_url)
-  request = http.get query: {format: 'json'}
-  request.callback do 
-    p request.response
-    EM.stop
-  end
+  EMDextras::Chains.pipe('no input', Monitoring.new, [
+    ListCountries.new,
+    PrintResponse.new
+  ])
 end
