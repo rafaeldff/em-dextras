@@ -33,4 +33,25 @@ describe 'Spec Matchers' do
       end}.to raise_error
     end
   end
+  
+  describe :succeed_according_to do
+    it "should accept if the block eventually yields without raising" do
+      EM.run do
+        deferrable = EventMachine::DefaultDeferrable.new
+        EM.next_tick { deferrable.succeed("ok") }
+        deferrable.should succeed_according_to(lambda do |value|
+          value.should == "ok"
+        end)
+      end
+    end
+
+    it "should reject if the block never yields without raising while probing" do
+      expect {EM.run do
+        deferrable = EventMachine::DefaultDeferrable.new
+        deferrable.should succeed_according_to(lambda do |value|
+          value.should == "ok"
+        end)
+      end}.to raise_error
+    end
+  end
 end
