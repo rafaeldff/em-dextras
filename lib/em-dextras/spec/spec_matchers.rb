@@ -35,7 +35,7 @@ if defined?(RSpec)
 
       probe_event_machine :check => (lambda do |ignored|
         proc_expecting.call(resolved_value)
-      end), :timeout => 1
+      end), :timeout => 5
     end
   end
 
