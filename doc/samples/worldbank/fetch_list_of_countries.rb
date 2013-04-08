@@ -1,4 +1,4 @@
-class ListCountries
+class FetchListOfCountries
   def todo(no_input)
     http = EventMachine::HttpRequest.new(list_of_countries_url)
     http.get

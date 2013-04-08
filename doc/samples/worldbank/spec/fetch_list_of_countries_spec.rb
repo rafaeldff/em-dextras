@@ -1,7 +1,7 @@
 require_relative './support/spec_helper'
-require_relative '../list_countries'
+require_relative '../fetch_list_of_countries'
 
-describe ListCountries do
+describe FetchListOfCountries do
   it "should successfully request a list of countries" do
     EM.run do
       subject.todo('ignored input').should succeed_according_to(lambda {|request|
