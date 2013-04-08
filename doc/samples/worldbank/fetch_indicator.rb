@@ -5,7 +5,7 @@ class FetchIndicator
 
   def todo(country)
     id = country["id"]
-    http = EventMachine::HttpRequest.new(indicator_url(id))
+    http = EventMachine::HttpRequest.new(indicator_url(id), :connect_timeout => 2, :inactivity_timeout => 3)
     http.get
   end
 
