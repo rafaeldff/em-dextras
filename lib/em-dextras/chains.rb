@@ -53,6 +53,8 @@ module EMDextras
 
       stage, *rest = *stages
 
+      puts "Running #{stage}(#{input})" if pipe_setup.options[:debug]
+
       if stage == :split
         split_chain(input, rest, pipe_setup)
         return
