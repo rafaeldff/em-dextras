@@ -64,55 +64,6 @@ module EMDextras
       end
     end
 
-    class JoinMonitor
-      def initialize(size, underlying)
-        @underlying = underlying
-        @resolved = size
-        @args = []
-      end
-
-      def inform_exception!(*args)
-        @underlying.inform_exception!(*args)
-      end
-
-      def end_of_chain!(arg, context=nil)
-        @args << arg
-        @resolved -= 1
-        complete!(@args, context) if @resolved == 0
-      end
-
-      def complete!(args, context)
-        if context.nil?
-          @underlying.end_of_chain! args
-        else
-          @underlying.end_of_chain! args, context
-        end
-      end
-    end
-    
-    class JoinStage
-      def initialize(size)
-        @size = size
-        @args = []
-        @result = EventMachine::DefaultDeferrable.new
-      end
-
-      def todo(argument)
-        @args << argument
-        check_if_complete!
-        @result
-      end
-
-      def result
-        @result
-      end
-
-      private
-      def check_if_complete!
-        @result.succeed(@args) if @args.size == @size
-      end
-    end
-
     module Deferrables
       def self.succeeded(*args)
         deferrable = EventMachine::DefaultDeferrable.new
@@ -133,11 +84,20 @@ module EMDextras
 
     def self.pipe(zero, monitoring, stages, options = {})
       result = EventMachine::DefaultDeferrable.new
+
+      result.callback do |value|
+        notify_end_of_chain!(value, monitoring, options)
+      end
+
+      result.errback do |value| 
+        notify_end_of_chain!(value, monitoring, options)
+      end
+
       run_chain zero, stages, PipeSetup.new(monitoring, options, result)
     end
 
     def self.run_chain input, stages, pipe_setup
-      return chain_ended!(input, pipe_setup) if stages.empty?
+      return pipe_setup.result.succeed(input) if stages.empty?
 
       stage, *rest = *stages
 
@@ -150,7 +110,7 @@ module EMDextras
       deferrable.callback do |value|
         should_halt = value.nil?
         if should_halt
-          chain_ended!(value, pipe_setup)
+          pipe_setup.result.succeed(value)
         else
           run_chain value, rest, pipe_setup
         end
@@ -171,7 +131,6 @@ module EMDextras
         new_options[:context] = context.split
       end
 
-      join_monitor = JoinMonitor.new(input.size, pipe_setup.monitoring)
       rest_of_chain = rest
 
       unless input.respond_to? :each
@@ -181,7 +140,7 @@ module EMDextras
 
       splits_deferrables = input.map do |value|
         split_result = EventMachine::DefaultDeferrable.new
-        new_pipe_setup = PipeSetup.new(join_monitor, new_options, split_result)
+        new_pipe_setup = PipeSetup.new(pipe_setup.monitoring, new_options, split_result)
         run_chain value, rest_of_chain, new_pipe_setup
 
         split_result
@@ -208,9 +167,8 @@ module EMDextras
       end
     end
 
-    def self.chain_ended!(value, pipe_setup)
-      context = pipe_setup.options[:context]
-      monitoring = pipe_setup.monitoring
+    def self.notify_end_of_chain!(value, monitoring, options)
+      context = options[:context]
 
       if monitoring.respond_to? :end_of_chain!
         if context
@@ -219,8 +177,7 @@ module EMDextras
           monitoring.end_of_chain!(value)
         end
       end
-
-      pipe_setup.result.succeed(value)
     end
+
   end
 end
