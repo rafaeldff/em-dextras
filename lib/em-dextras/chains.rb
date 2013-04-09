@@ -83,21 +83,18 @@ module EMDextras
     end
 
     def self.pipe(zero, monitoring, stages, options = {})
-      result = EventMachine::DefaultDeferrable.new
-
-      result.callback do |value|
-        notify_end_of_chain!(value, monitoring, options)
-      end
-
-      result.errback do |value| 
-        notify_end_of_chain!(value, monitoring, options)
-      end
-
+      result = create_chain_result(monitoring, options)
       run_chain zero, stages, PipeSetup.new(monitoring, options, result)
     end
 
+    def self.create_chain_result(monitoring, options)
+      EventMachine::DefaultDeferrable.new.
+        tap {|d| d.callback { |value| notify_end_of_chain!(value, monitoring, options) }}.
+        tap {|d| d.errback  { |value| notify_end_of_chain!(value, monitoring, options) }}
+    end
+
     def self.run_chain input, stages, pipe_setup
-      return pipe_setup.result.succeed(input) if stages.empty?
+      return pipe_setup.result.succeed(input) if stages.empty? || input.nil?
 
       stage, *rest = *stages
 
@@ -108,15 +105,11 @@ module EMDextras
 
       deferrable = call(stage, input, pipe_setup)
       deferrable.callback do |value|
-        should_halt = value.nil?
-        if should_halt
-          pipe_setup.result.succeed(value)
-        else
-          run_chain value, rest, pipe_setup
-        end
+        run_chain value, rest, pipe_setup
       end
       deferrable.errback do |error_value|
         pipe_setup.inform_exception! error_value, stage
+        pipe_setup.result.fail(error_value)
       end
 
       pipe_setup.result
