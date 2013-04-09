@@ -97,6 +97,22 @@ describe EMDextras::Chains do
         result.should fail_with("error")
       end
     end
+
+    it "should not proceed with the chain" do
+      EM.run do
+        produced = []
+
+        result = EMDextras::Chains.pipe("in", monitoring, [
+          SpyStage.new(produced),
+          ErrorStage.new,
+          SpyStage.new(produced)
+        ])
+
+        probe_event_machine check: (Proc.new do
+          produced.should == ["in"]
+        end)
+      end
+    end
   end
 
   context "- interruption -" do
@@ -158,6 +174,20 @@ describe EMDextras::Chains do
         ])
 
         monitoring.received_call!(:end_of_chain!, "z")
+      end
+    end
+
+    it "should notify monitoring of the end of the pipeline even when a stage fails" do
+      EM.run do
+        monitoring = EMDextras::Spec::Spy.new
+
+        EMDextras::Chains.pipe("x", monitoring, [
+          ProduceStage.new("y"),
+          ErrorStage.new,
+          ProduceStage.new("z")
+        ])
+
+        monitoring.received_call!(:end_of_chain!, "y")
       end
     end
 
@@ -343,7 +373,7 @@ describe EMDextras::Chains do
             SpyStage.new([]),
             StopStage.new
           ])
-        end
+      end
       end
     end
   end
