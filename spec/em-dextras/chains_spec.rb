@@ -67,6 +67,16 @@ describe EMDextras::Chains do
     end
   end
 
+  it "should return a deferrable with the result of the last step" do
+    EM.run do
+      result = EMDextras::Chains.pipe("ignored", monitoring, [
+        ProduceStage.new("out")
+      ])
+
+      result.should succeed_with("out")
+    end
+  end
+
   context "- interruption -" do
     it "should interrupt the chain when a stage returns an empty succeeded deferrable" do
       EM.run do
@@ -232,6 +242,32 @@ describe EMDextras::Chains do
             before.context.should == first_context
             after.context.should == second_context
           }
+        end
+      end
+      
+      it "should return a deferrable with the result of the last step" do
+        EM.run do
+          result = EMDextras::Chains.pipe("anything", monitoring, [
+            ProduceStage.new([1,2]),
+            :split,
+            SpyStage.new([])
+          ])
+
+          result.should succeed_with([1,2])
+        end
+      end
+
+      it "should return a deferrable with the result of the last step, for multiple splits" do
+        EM.run do
+          result = EMDextras::Chains.pipe("anything", monitoring, [
+            ProduceStage.new([1,2]),
+            :split,
+            ProduceStage.new([3,4]),
+            :split,
+            SpyStage.new([])
+          ])
+
+          result.should succeed_with([[3,4],[3,4]])
         end
       end
 

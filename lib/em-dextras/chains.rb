@@ -1,5 +1,69 @@
 module EMDextras
   module Chains
+
+    class JoinedDeferrable
+      include EventMachine::Deferrable
+
+      def initialize(deferrables)
+        result_pairs = deferrables.map do |deferrable|
+          [deferrable, :unset]
+        end
+        @results = Hash[result_pairs]
+        @callback_values = []
+        @errback_values = []
+
+        initialize_deferrables!
+      end
+
+      def one_callback(*vs)
+        deferrable, *values = vs
+        @results[deferrable] = :ok
+        @callback_values.push *values
+
+        check_if_complete
+      end
+
+      def one_errback(*vs)
+        deferrable, *values = vs
+        @results[deferrable] = :error
+          @errback_values.push *values
+
+        check_if_complete
+      end
+
+      private
+
+      def check_if_complete
+        complete! unless any_was?(:unset)
+      end
+
+      def complete!
+        (self.fail(@errback_values); return) if any_was?(:error)
+        self.succeed(@callback_values)
+      end
+
+      def any_was?(state)
+        @results.any? {|k, v| v == state }
+      end
+
+      def initialize_deferrables!
+        ds = @results.keys
+
+        ds.each do |deferrable|
+          deferrable.callback do |*values|
+            self.one_callback deferrable, *values
+          end
+          deferrable.errback do |*values|
+            self.one_errback deferrable, *values
+          end
+        end
+
+        ds.each do |d|
+          d.timeout(5, "Expired timeout of #{5} for #{d.inspect}")
+        end
+      end
+    end
+
     class JoinMonitor
       def initialize(size, underlying)
         @underlying = underlying
@@ -25,6 +89,29 @@ module EMDextras
         end
       end
     end
+    
+    class JoinStage
+      def initialize(size)
+        @size = size
+        @args = []
+        @result = EventMachine::DefaultDeferrable.new
+      end
+
+      def todo(argument)
+        @args << argument
+        check_if_complete!
+        @result
+      end
+
+      def result
+        @result
+      end
+
+      private
+      def check_if_complete!
+        @result.succeed(@args) if @args.size == @size
+      end
+    end
 
     module Deferrables
       def self.succeeded(*args)
@@ -38,22 +125,21 @@ module EMDextras
       end
     end
 
-    PipeSetup = Struct.new(:monitoring, :options) do
+    PipeSetup = Struct.new(:monitoring, :options, :result) do
       def inform_exception!(error_value, stage)
         self.monitoring.inform_exception! error_value, stage
       end
     end
 
     def self.pipe(zero, monitoring, stages, options = {})
-      run_chain zero, stages, PipeSetup.new(monitoring, options)
+      result = EventMachine::DefaultDeferrable.new
+      run_chain zero, stages, PipeSetup.new(monitoring, options, result)
     end
 
     def self.run_chain input, stages, pipe_setup
       return chain_ended!(input, pipe_setup) if stages.empty?
 
       stage, *rest = *stages
-
-      puts "Running #{stage}(#{input})" if pipe_setup.options[:debug]
 
       if stage == :split
         split_chain(input, rest, pipe_setup)
@@ -72,6 +158,8 @@ module EMDextras
       deferrable.errback do |error_value|
         pipe_setup.inform_exception! error_value, stage
       end
+
+      pipe_setup.result
     end
 
     private
@@ -84,14 +172,27 @@ module EMDextras
       end
 
       join_monitor = JoinMonitor.new(input.size, pipe_setup.monitoring)
-      new_pipe_setup = PipeSetup.new(join_monitor, new_options)
+      rest_of_chain = rest
 
       unless input.respond_to? :each
         pipe_setup.inform_exception! ArgumentError.new(":split stage expects enumerable input. \"#{input}\" is not enumerable."), :split
         return
       end
-      input.each do |value|
-        run_chain value, rest, new_pipe_setup
+
+      splits_deferrables = input.map do |value|
+        split_result = EventMachine::DefaultDeferrable.new
+        new_pipe_setup = PipeSetup.new(join_monitor, new_options, split_result)
+        run_chain value, rest_of_chain, new_pipe_setup
+
+        split_result
+      end
+
+      join = JoinedDeferrable.new(splits_deferrables)
+      join.callback do |*values|
+        pipe_setup.result.succeed(*values)
+      end
+      join.errback do |*values|
+        pipe_setup.result.fail(*values)
       end
     end
 
@@ -118,6 +219,8 @@ module EMDextras
           monitoring.end_of_chain!(value)
         end
       end
+
+      pipe_setup.result.succeed(value)
     end
   end
 end
