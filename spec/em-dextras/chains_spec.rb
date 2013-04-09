@@ -1,6 +1,12 @@
 require 'spec_helper'
 
 describe EMDextras::Chains do
+  class EchoStage
+    def todo(input)
+      EMDextras::Chains::Deferrables.succeeded(input)
+    end
+  end
+
   class ProduceStage
     def initialize(result)
       @result = result
@@ -24,7 +30,7 @@ describe EMDextras::Chains do
 
   class ErrorStage
     def todo(input)
-      EMDextras::Chains::Deferrables.failed "Failed with #{input}"
+      EMDextras::Chains::Deferrables.failed input
     end
   end
 
@@ -53,27 +59,43 @@ describe EMDextras::Chains do
 
   let(:monitoring) { mock.as_null_object }
 
-  it "should chain todo stages" do
-    EM.run do
-      inputs = []
+  context " - when all stages succeed -" do
+    it "should chain todo stages" do
+      EM.run do
+        inputs = []
 
-      EMDextras::Chains.pipe("input", monitoring, [
-        SpyStage.new(inputs),
-        SpyStage.new(inputs),
-        StopStage.new
-      ])
+        EMDextras::Chains.pipe("input", monitoring, [
+          SpyStage.new(inputs),
+          SpyStage.new(inputs),
+          StopStage.new
+        ])
 
-      inputs.should == ["input", "input"]
+        inputs.should == ["input", "input"]
+      end
+    end
+
+    it "should return a deferrable with the result of the last step" do
+      EM.run do
+        result = EMDextras::Chains.pipe("ignored", monitoring, [
+          ProduceStage.new("out")
+        ])
+
+        result.should succeed_with("out")
+      end
     end
   end
 
-  it "should return a deferrable with the result of the last step" do
-    EM.run do
-      result = EMDextras::Chains.pipe("ignored", monitoring, [
-        ProduceStage.new("out")
-      ])
+  context " - when a stage fails - " do
+    it "should fail the resulting deferrable" do
+      EM.run do
+        result = EMDextras::Chains.pipe("error", monitoring, [
+          EchoStage.new,
+          ErrorStage.new,
+          ProduceStage.new(42)
+        ])
 
-      result.should succeed_with("out")
+        result.should fail_with("error")
+      end
     end
   end
 

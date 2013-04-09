@@ -33,6 +33,30 @@ describe 'Spec Matchers' do
       end}.to raise_error
     end
   end
+
+  describe :fail_with do
+    it "should accept a failure with the expected value" do
+      EM.run do
+        failure = EMDextras::Chains::Deferrables.failed("expected")
+        failure.should fail_with("expected")
+      end
+    end
+
+    it "should reject a success" do
+      expect {EM.run do
+        presumed_failure = EMDextras::Chains::Deferrables.succeeded("expected")
+        presumed_failure.should fail_with("expected")
+      end}.to raise_error
+    end
+
+    it "should timeout if nothing happens" do
+      expect {EM.run do
+        presumed_failure = EventMachine::DefaultDeferrable.new
+        presumed_failure.should fail_with("expected")
+      end}.to raise_error
+    end
+    
+  end
   
   describe :succeed_according_to do
     it "should accept if the block eventually yields without raising" do
