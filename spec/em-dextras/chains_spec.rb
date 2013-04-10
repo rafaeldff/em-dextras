@@ -309,7 +309,7 @@ describe EMDextras::Chains do
         end
       end
 
-      it "should return a deferrable with the result of the last step, for multiple splits" do
+      it "should return a deferrable with the result of the last step, accumulating results for multiple splits" do
         EM.run do
           result = EMDextras::Chains.pipe("anything", monitoring, [
             ProduceStage.new([1,2]),
@@ -373,7 +373,7 @@ describe EMDextras::Chains do
             SpyStage.new([]),
             StopStage.new
           ])
-      end
+        end
       end
     end
   end
