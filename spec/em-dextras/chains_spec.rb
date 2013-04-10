@@ -36,7 +36,7 @@ describe EMDextras::Chains do
 
   class InvalidStage
     def todo(input)
-      "Not a deferrable object"
+      "not-a-deferrable"
     end
   end
 
@@ -429,7 +429,7 @@ describe EMDextras::Chains do
         EMDextras::Chains.pipe("the input", monitoring, [
           InvalidStage.new
         ])
-      end}.to raise_error(EMDextras::Chains::InvalidStage, "Stage 'InvalidStage' did not return a deferrable object when given input 'the input'!")
+      end}.to raise_error(EMDextras::Chains::InvalidStage, /.*'InvalidStage'.*'the input'.*'not-a-deferrable'.*/)
     end
   end
 end
