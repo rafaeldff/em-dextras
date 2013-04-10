@@ -34,6 +34,12 @@ describe EMDextras::Chains do
     end
   end
 
+  class InvalidStage
+    def todo(input)
+      "Not a deferrable object"
+    end
+  end
+
   class StopStage
     def todo(input)
       EM.stop
@@ -375,6 +381,16 @@ describe EMDextras::Chains do
           ])
         end
       end
+    end
+  end
+
+  context " - input validation - " do
+    it "should raise an exception when a stage doesn't return a deferrable" do
+      expect {EM.run do
+        EMDextras::Chains.pipe("the input", monitoring, [
+          InvalidStage.new
+        ])
+      end}.to raise_error(EMDextras::Chains::InvalidStage, "Stage 'InvalidStage' did not return a deferrable object when given input 'the input'!")
     end
   end
 end

@@ -104,6 +104,7 @@ module EMDextras
       end
 
       deferrable = call(stage, input, pipe_setup)
+      check_stage_is_well_behaved!(deferrable, stage, input)
       deferrable.callback do |value|
         run_chain value, rest, pipe_setup
       end
@@ -116,6 +117,13 @@ module EMDextras
     end
 
     private
+
+    def self.check_stage_is_well_behaved!(deferrable, stage, input)
+      unless deferrable.respond_to?(:callback) && deferrable.respond_to?(:errback)
+        raise InvalidStage, "Stage '#{stage.class.name}' did not return a deferrable object when given input '#{input}'!"
+      end
+    end
+
     def self.split_chain input, rest, pipe_setup
       new_options = pipe_setup.options.clone
 
@@ -172,5 +180,7 @@ module EMDextras
       end
     end
 
+    class InvalidStage < Exception
+    end
   end
 end
