@@ -329,6 +329,30 @@ describe EMDextras::Chains do
         end
       end
 
+      it "should handle a split as first chain element" do
+        EM.run do
+          results = []
+          EMDextras::Chains.pipe([1,2,3], monitoring, [
+            :split,
+            SpyStage.new(results)
+          ])
+          probe_event_machine :check => (lambda {|x|
+            results.should == [1,2,3]
+          })
+        end
+      end
+
+      it "should handle a split as last chain element" do
+        EM.run do
+          result = EMDextras::Chains.pipe('ignored', monitoring, [
+            ProduceStage.new([1,2,3]),
+            :split
+          ])
+
+          result.should succeed_with([1,2,3])
+        end
+      end
+
       context " - splits and monitoring - " do
         it "should inform monitoring that the pipeline ended only once" do
           EM.run do
