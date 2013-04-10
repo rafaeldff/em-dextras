@@ -100,7 +100,7 @@ module EMDextras
 
       if stage == :split
         split_chain(input, rest, pipe_setup)
-        return
+        return pipe_setup.result
       end
 
       deferrable = call(stage, input, pipe_setup)
