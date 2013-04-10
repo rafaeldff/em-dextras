@@ -303,7 +303,7 @@ describe EMDextras::Chains do
         end
       end
       
-      it "should return a deferrable with the result of the last step" do
+      it "should return a deferrable acccumulating the results of the last step" do
         EM.run do
           result = EMDextras::Chains.pipe("anything", monitoring, [
             ProduceStage.new([1,2]),
@@ -329,35 +329,37 @@ describe EMDextras::Chains do
         end
       end
 
-      it "should inform monitoring that the pipeline ended only once" do
-        EM.run do
-          monitoring = EMDextras::Spec::Spy.new
+      context " - splits and monitoring - " do
+        it "should inform monitoring that the pipeline ended only once" do
+          EM.run do
+            monitoring = EMDextras::Spec::Spy.new
 
-          EMDextras::Chains.pipe("anything", monitoring, [
-            ProduceStage.new([1,2]),
-            :split,
-            ProduceStage.new([3,4]),
-            :split,
-            SpyStage.new([])
-          ])
+            EMDextras::Chains.pipe("anything", monitoring, [
+              ProduceStage.new([1,2]),
+              :split,
+              ProduceStage.new([3,4]),
+              :split,
+              SpyStage.new([])
+            ])
 
-          monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]])
+            monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]])
+          end
         end
-      end
 
-      it "should inform monitoring that the pipeline ended with context if given" do
-        EM.run do
-          monitoring = EMDextras::Spec::Spy.new
+        it "should inform monitoring that the pipeline ended with context if given" do
+          EM.run do
+            monitoring = EMDextras::Spec::Spy.new
 
-          EMDextras::Chains.pipe("anything", monitoring, [
-            ProduceStage.new([1,2]),
-            :split,
-            ProduceStage.new([3,4]),
-            :split,
-            SpyStage.new([])
-          ], context: :the_context)
+            EMDextras::Chains.pipe("anything", monitoring, [
+              ProduceStage.new([1,2]),
+              :split,
+              ProduceStage.new([3,4]),
+              :split,
+              SpyStage.new([])
+            ], context: :the_context)
 
-          monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]], :the_context)
+            monitoring.received_n_calls!(1, :end_of_chain!, [[3,4],[3,4]], :the_context)
+          end
         end
       end
     end
