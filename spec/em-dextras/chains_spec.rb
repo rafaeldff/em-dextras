@@ -63,7 +63,7 @@ describe EMDextras::Chains do
     end
   end
 
-  let(:monitoring) { mock.as_null_object }
+  let(:monitoring) { EMDextras::Spec::Spy.new }
 
   context " - when all stages succeed -" do
     it "should chain todo stages" do
@@ -158,15 +158,9 @@ describe EMDextras::Chains do
   context "- monitoring -" do
     it "should notify monitoring of any exceptions" do
       EM.run do
-        monitoring.should_receive(:inform_exception!) do
-          EM.stop
-        end
-
-        EM.add_timer(2) do
-          fail("timeout")
-        end
-
         EMDextras::Chains.pipe("anything", monitoring, [ErrorStage.new]);
+
+        monitoring.received_call!(:inform_exception!, any_args)
       end
     end
 
@@ -404,20 +398,13 @@ describe EMDextras::Chains do
     context "and the input is not enumberable" do
       it "will terminate the chain and report the error as an exception" do
         EM.run do
-          monitoring.should_receive(:inform_exception!) do
-            EM.stop
-          end
-
-          EM.add_timer(2) do
-            fail("timeout")
-          end
-
           EMDextras::Chains.pipe("anything", monitoring, [
             ProduceStage.new(:not_enumberable_input),
             :split,
             SpyStage.new([]),
             StopStage.new
           ])
+          monitoring.received_call!(:inform_exception!, any_args)
         end
       end
     end
