@@ -78,7 +78,11 @@ module EMDextras
 
     PipeSetup = Struct.new(:monitoring, :options, :result) do
       def inform_exception!(error_value, stage)
-        self.monitoring.inform_exception! error_value, stage
+        if options[:context]
+          self.monitoring.inform_exception! error_value, stage, options[:context]
+        else
+          self.monitoring.inform_exception! error_value, stage
+        end
       end
     end
 

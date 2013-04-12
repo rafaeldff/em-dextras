@@ -164,6 +164,18 @@ describe EMDextras::Chains do
       end
     end
 
+    it "should pass the context to monitoring.inform_exception if given" do
+      EM.run do 
+        error_stage = ErrorStage.new
+
+        EMDextras::Chains.pipe("input", monitoring, [
+          error_stage
+        ], context: "the context")
+
+        monitoring.received_call!(:inform_exception!, "input", error_stage, "the context")
+      end
+    end
+
     it "should notify monitoring of the end of the pipeline" do
       EM.run do
         monitoring = EMDextras::Spec::Spy.new
