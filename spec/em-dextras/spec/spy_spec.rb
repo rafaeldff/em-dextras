@@ -70,11 +70,20 @@ describe EMDextras::Spec::Spy do
       }.to raise_error(/bar.*foo/)
     end
 
-    it "should accept rspec argument matchers" do
-      subject.foo(1, "banana")
+    context " - rspec argument matchers - " do
+      it "should accept rspec specific argument matchers"  do
+        subject.foo(1, "banana")
 
-      EM.run { subject.received_call!(:foo, 1, /ba(na)*/) } #doesn't raise
-      expect {EM.run { subject.received_call!(:foo, 1, /apple/) } }.to raise_error
+        EM.run { subject.received_call!(:foo, 1, /ba(na)*/) } #doesn't raise
+        EM.run { subject.received_call!(:foo, 1, instance_of(String)) } #doesn't raise
+        expect {EM.run { subject.received_call!(:foo, 1, /apple/) } }.to raise_error
+      end
+
+      it "should accept rspec general matchers" do
+        subject.foo(1, "banana")
+
+        EM.run { subject.received_call!(:foo, any_args) } #doesn't raise
+      end
     end
 
     it "should be able to assert that a method will receive nil" do
