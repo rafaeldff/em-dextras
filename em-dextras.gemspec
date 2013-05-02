@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["public@rafaelferreira.net"]
   gem.description   = %q{Utilities to help working with EventMachine deferrables.}
   gem.summary       = %q{Utilities to help working with EventMachine Deferrables. Includes probes for asynchronous tests and a DSL to chain deferrables.}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/rafaeldff/em-dextras"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
