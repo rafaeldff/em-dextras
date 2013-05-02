@@ -161,6 +161,14 @@ module EMDextras
     end
 
     def self.call(stage, input, pipe_setup)
+      begin
+        do_call stage, input, pipe_setup
+      rescue => e
+        EMDextras::Chains::Deferrables.failed e
+      end
+    end
+
+    def self.do_call(stage, input, pipe_setup)
       todo_method = stage.method(:todo)
       arity = todo_method.arity
       if arity < 0 && pipe_setup.options[:context]

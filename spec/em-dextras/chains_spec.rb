@@ -34,6 +34,12 @@ describe EMDextras::Chains do
     end
   end
 
+  class RaisingExceptionStage
+    def todo(input)
+      raise StandardError, input.to_s
+    end
+  end
+
   class InvalidStage
     def todo(input)
       "not-a-deferrable"
@@ -156,9 +162,17 @@ describe EMDextras::Chains do
   end
 
   context "- monitoring -" do
-    it "should notify monitoring of any exceptions" do
+    it "should notify monitoring of any failure" do
       EM.run do
         EMDextras::Chains.pipe("anything", monitoring, [ErrorStage.new]);
+
+        monitoring.received_call!(:inform_exception!, any_args)
+      end
+    end
+
+    it "should notify monitoring of any exception" do
+      EM.run do
+        EMDextras::Chains.pipe("will raise", monitoring, [RaisingExceptionStage.new]);
 
         monitoring.received_call!(:inform_exception!, any_args)
       end
